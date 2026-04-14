@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main  # 当你推送到主分支时触发
+  workflow_dispatch:  # 添加这一行，开启手动触发按钮
 
 jobs:
   build:
