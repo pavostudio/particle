@@ -1,45 +1,52 @@
-# 针对 Pavo Studio 自建服务器环境修改的 Jekyll + Gulp 构建脚本
 name: Build Jekyll site for manual deployment
 
 on:
   push:
-    branches: ["master"] # 确保你的分支名是 master
-  workflow_dispatch:      # 允许手动触发按钮
-
-permissions:
-  contents: read
+    branches: ["master"]
+  workflow_dispatch:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04 # 使用旧版环境，通常自带 python2
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # 1. 安装 Node.js 并处理前端资源 (针对你项目中的 Gulp 工作流)
+      # 1. 降低 Node 版本以兼容老旧的 node-sass
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          cache: 'yarn' # 自动缓存依赖，加快下次构建速度
+          node-version: '14' # 尝试 14 或 16，Node 20 太新了
+          cache: 'yarn'
 
-      - name: Install dependencies and Build Assets
+      # 2. 显式安装 Python 2
+      - name: Setup Python 2.7
+        uses: actions/setup-python@v5
+        with:
+          python-version: '2.7'
+
+      - name: Install dependencies
         run: |
+          # 强制指定 python 路径给 npm
+          npm config set python /usr/bin/python2.7
           yarn install
           npm install -g gulp-cli
-          # 这里假设你的项目是通过 gulp 来驱动 jekyll 的
-          # 如果 gulp 脚本里已经包含了 jekyll build，只需运行这一步
           gulp build || npx gulp build
+
+      # 3. 设置 Ruby 运行 Jekyll
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '2.7' # 匹配老项目的 Ruby 版本
+          bundler-cache: true
 
       - name: Build with Jekyll
         run: bundle exec jekyll build
         env:
           JEKYLL_ENV: production
 
-      # 3. 将生成的 _site 文件夹上传，供你手动下载
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: jekyll-build-site
           path: _site/
-          retention-days: 7 # 产物在 GitHub 保留 7 天
