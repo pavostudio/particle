@@ -1,0 +1,44 @@
+name: Build Jekyll Site Only
+
+on:
+  push:
+    branches:
+      - main  # 当你推送到主分支时触发
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      # 1. 设置 Node 环境 (处理 Gulp 逻辑)
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'yarn'
+
+      - name: Install JS Dependencies
+        run: |
+          yarn install
+          npm install -g gulp-cli
+
+      # 2. 设置 Ruby 环境 (处理 Jekyll 逻辑)
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.3'
+          bundler-cache: true
+
+      # 3. 执行构建
+      - name: Run Build
+        run: gulp build  # 或者是 bundle exec jekyll build
+
+      # 4. 将生成的 _site 文件夹上传为 GitHub Artifact
+      - name: Upload Build Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: jekyll-static-site  # 你下载时的文件名
+          path: _site/              # 需要打包的文件夹路径
