@@ -7,39 +7,36 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-20.04
-    container:
-        image: ubuntu:20.04
+    runs-on: ubuntu-latest  # 使用 22.04 环境
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # 1. 降低 Node 版本以兼容老旧的 node-sass
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '14' # 尝试 14 或 16，Node 20 太新了
+          node-version: '20' # 可以用最新的 Node
           cache: 'yarn'
 
-      # 2. 显式安装 Python 2
-      - name: Setup Python 2.7
-        uses: actions/setup-python@v5
-        with:
-          python-version: '2.7'
-
-      - name: Install dependencies
+      - name: Fix Dependencies and Build
         run: |
-          # 强制指定 python 路径给 npm
-          npm config set python /usr/bin/python2.7
+          # 1. 强制移除会导致 Python 报错的老旧 node-sass
+          yarn remove node-sass || npm uninstall node-sass
+          
+          # 2. 安装现代的 dart-sass (它不需要编译，不会报 python 错)
+          yarn add sass --dev || npm install sass --save-dev
+          
+          # 3. 安装其余依赖
           yarn install
+          
+          # 4. 执行构建
           npm install -g gulp-cli
           gulp build || npx gulp build
 
-      # 3. 设置 Ruby 运行 Jekyll
       - name: Setup Ruby
         uses: ruby/setup-ruby@v1
         with:
-          ruby-version: '2.7' # 匹配老项目的 Ruby 版本
+          ruby-version: '3.3'
           bundler-cache: true
 
       - name: Build with Jekyll
